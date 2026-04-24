@@ -1,0 +1,8 @@
+.codex
+node_modules
+dist
+.DS_Store
+data/*.db
+data/*.db-*
+data/queue-concierge.sqlite
+npm-debug.log*
