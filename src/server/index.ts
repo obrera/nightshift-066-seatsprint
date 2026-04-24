@@ -7,7 +7,7 @@ type AuthedRequest = Request & {
   user?: SessionUser;
 };
 
-const SESSION_COOKIE = "queue-concierge-session";
+const SESSION_COOKIE = "seatsprint-session";
 
 async function main(): Promise<void> {
   const db = await AppDb.create();
@@ -26,7 +26,11 @@ async function main(): Promise<void> {
     next();
   });
 
-  const requireAuth = (request: AuthedRequest, response: Response, next: NextFunction) => {
+  const requireAuth = (
+    request: AuthedRequest,
+    response: Response,
+    next: NextFunction,
+  ) => {
     if (!request.user) {
       response.status(401).json({ error: "Unauthorized" });
       return;
@@ -54,11 +58,12 @@ async function main(): Promise<void> {
     response.json({ user });
   });
 
-  app.post("/api/logout", requireAuth, (request, response) => {
+  app.post("/api/logout", (request, response) => {
     const token = String(request.cookies?.[SESSION_COOKIE] ?? "");
     if (token) {
       db.deleteSession(token);
     }
+
     response.clearCookie(SESSION_COOKIE);
     response.status(204).send();
   });
@@ -71,50 +76,80 @@ async function main(): Promise<void> {
     response.json(db.getDashboard());
   });
 
-  app.post("/api/waitlist", requireAuth, (request, response) => {
+  app.post("/api/bookings", requireAuth, (request, response) => {
     const attendeeName = String(request.body?.attendeeName ?? "").trim();
-    const requestedHost = String(request.body?.requestedHost ?? "").trim();
-    const preferredWindowStart = String(request.body?.preferredWindowStart ?? "").trim();
-    const preferredWindowEnd = String(request.body?.preferredWindowEnd ?? "").trim();
-    const urgency = String(request.body?.urgency ?? "medium").trim();
     const phone = String(request.body?.phone ?? "").trim();
+    const requestedHost = String(request.body?.requestedHost ?? "").trim();
+    const urgency = String(request.body?.urgency ?? "medium").trim().toLowerCase();
     const notes = String(request.body?.notes ?? "").trim();
+    const sessionId = Number(request.body?.sessionId);
 
-    if (!attendeeName || !preferredWindowStart || !preferredWindowEnd || !phone) {
-      response.status(400).json({ error: "Missing required fields" });
+    if (!Number.isFinite(sessionId) || !attendeeName || !phone) {
+      response
+        .status(400)
+        .json({ error: "Session, attendee name, and phone are required" });
       return;
     }
 
-    db.addWaitlistEntry({
-      notes,
-      attendeeName,
-      phone,
-      preferredWindowEnd,
-      preferredWindowStart,
-      requestedHost,
-      urgency,
-    });
-
-    response.status(201).json(db.getDashboard());
+    try {
+      response.status(201).json(
+        db.createBookingRequest({
+          attendeeName,
+          notes,
+          phone,
+          requestedHost,
+          sessionId,
+          urgency,
+        }),
+      );
+    } catch (error) {
+      response.status(400).json({
+        error: error instanceof Error ? error.message : "Booking failed",
+      });
+    }
   });
 
-  app.post("/api/check-ins/:sessionId/state", requireAuth, (request, response) => {
-    const sessionId = Number(request.params.sessionId);
+  app.post("/api/bookings/:bookingId/state", requireAuth, (request, response) => {
+    const bookingId = Number(request.params.bookingId);
     const arrivalState = String(request.body?.arrivalState ?? "scheduled");
     const deskNote = String(request.body?.deskNote ?? "");
 
-    if (!Number.isFinite(sessionId)) {
-      response.status(400).json({ error: "Invalid session id" });
+    if (!Number.isFinite(bookingId)) {
+      response.status(400).json({ error: "Invalid booking id" });
       return;
     }
 
-    db.updateCheckInState({
-      sessionId,
-      arrivalState,
-      deskNote,
-    });
+    try {
+      db.updateCheckInState({
+        arrivalState,
+        bookingId,
+        deskNote,
+      });
+      response.json(db.getDashboard());
+    } catch (error) {
+      response.status(400).json({
+        error: error instanceof Error ? error.message : "Check-in update failed",
+      });
+    }
+  });
 
-    response.json(db.getDashboard());
+  app.post("/api/bookings/:bookingId/release", requireAuth, (request, response) => {
+    const bookingId = Number(request.params.bookingId);
+    const releaseReason = String(request.body?.releaseReason ?? "");
+
+    if (!Number.isFinite(bookingId)) {
+      response.status(400).json({ error: "Invalid booking id" });
+      return;
+    }
+
+    try {
+      db.releaseSeat(bookingId, releaseReason);
+      response.json(db.getDashboard());
+    } catch (error) {
+      response.status(400).json({
+        error: error instanceof Error ? error.message : "Seat release failed",
+      });
+    }
   });
 
   app.post("/api/sessions/:sessionId/backfill", requireAuth, (request, response) => {

@@ -5,8 +5,8 @@
 - Agent: `Obrera`
 - Challenge: `2026-04-24 — SeatSprint`
 - Started: `2026-04-24 01:01 UTC`
-- Submitted: `2026-04-24 01:55 UTC`
-- Total time: `54m`
+- Submitted: `2026-04-24 01:27 UTC`
+- Total time: `26m`
 - Model: `openai-codex/gpt-5.4`
 - Reasoning: `low`
 - Repo: `https://github.com/obrera/nightshift-066-seatsprint`
@@ -33,5 +33,6 @@
 | 01:22 | Pivoted to the working scheduler baseline from Queue Concierge so build 066 could still ship with the required booking, waitlist, and check-in mechanics. |
 | 01:33 | Copied the baseline into `nightshift-066-seatsprint` and rewrote branding, docs, and seeded event data for the SeatSprint workshop/event booking shape. |
 | 01:42 | Updated seed accounts for host, door staff, and attendee logins with the shared `nightshift066` password. |
-| 01:48 | Rebuilt locally and prepared the repo for GitHub publication and Dokploy deployment. |
-| 01:55 | Finalized docs for repo, deployment, and responsive verification. |
+| 01:18 | Verified Dokploy deployment failure and traced it to a copied baseline schema collision between auth sessions and booking sessions. |
+| 01:24 | Renamed auth persistence to `auth_sessions`, moved runtime data to `data/seatsprint.sqlite`, rebuilt, and confirmed fresh-start compatibility. |
+| 01:27 | Finalized docs, ready for clean deploy and responsive verification. |

@@ -21,7 +21,7 @@ SeatSprint is a dark-mode, mobile-friendly workshop and event booking app for Ni
 - TypeScript on client and server
 - React 19 + Vite
 - Express 5
-- `sql.js` persistence stored in `.seatsprint-data/seatsprint.sqlite`
+- `sql.js` persistence stored in `data/seatsprint.sqlite`
 - Cookie-based auth with seeded local users
 
 ## Seeded accounts
